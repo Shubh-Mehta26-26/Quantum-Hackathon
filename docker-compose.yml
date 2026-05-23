@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: quantumflow-db
+    environment:
+      POSTGRES_USER: quantum_admin
+      POSTGRES_PASSWORD: quantum_secure_pass
+      POSTGRES_DB: quantumflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - quantumflow-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: quantumflow-cache
+    ports:
+      - "6379:6379"
+    networks:
+      - quantumflow-net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: quantumflow-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - DATABASE_URL=postgresql://quantum_admin:quantum_secure_pass@postgres:5432/quantumflow
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=quantum_secret_key_101
+      - SIMULATION_ENGINE_URL=http://simulation-engine:8000
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - quantumflow-net
+
+  simulation-engine:
+    build:
+      context: ./simulation-engine
+      dockerfile: Dockerfile
+    container_name: quantumflow-simulator
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - HOST=0.0.0.0
+    networks:
+      - quantumflow-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: quantumflow-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - quantumflow-net
+
+volumes:
+  pgdata:
+
+networks:
+  quantumflow-net:
+    driver: bridge
