@@ -21,14 +21,15 @@ jobs:
       - name: Backend Lint & Build Check
         run: |
           cd backend
-          npm install
-          npm run build
+          npm install --include=dev
+          npx tsc
 
       - name: Frontend Lint & Build Check
         run: |
           cd frontend
-          npm install
-          npm run build
+          npm install --include=dev
+          npx tsc
+          npx vite build
 
   python-tests:
     runs-on: ubuntu-latest
